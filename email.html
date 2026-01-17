@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>邮箱验证系统</title>
+    <title>邮箱激活系统</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 React 和 React DOM -->
@@ -13,7 +13,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
-        /* 简单的淡入动画 */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -29,12 +28,12 @@
     <script type="text/babel">
         const { useState } = React;
 
-        // --- 图标组件 (替换 Lucide 库以减少依赖) ---
+        // --- 图标组件 ---
         const MailIcon = ({ className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
         );
-        const SearchIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        const ZapIcon = ({ className }) => ( // 换成了闪电图标代表激活
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         );
         const AlertCircleIcon = ({ className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
@@ -52,6 +51,7 @@
             const [status, setStatus] = useState('idle'); // idle, success, error, invalid
             const [message, setMessage] = useState('');
 
+            // 谷歌系黑名单
             const googleDomains = [
                 'gmail.com',
                 'googlemail.com',
@@ -74,23 +74,24 @@
 
                 if (!email) {
                     setStatus('invalid');
-                    setMessage('请输入邮箱地址');
+                    setMessage('请输入邮箱地址以进行激活');
                     return;
                 }
                 if (!validateEmailFormat(email)) {
                     setStatus('invalid');
-                    setMessage('邮箱格式不正确');
+                    setMessage('邮箱格式不正确，无法激活');
                     return;
                 }
 
                 const emailDomain = email.split('@')[1].toLowerCase();
 
+                // 逻辑：如果是谷歌邮箱 -> 激活失败
                 if (googleDomains.includes(emailDomain)) {
                     setStatus('error');
-                    setMessage('检测到这是谷歌服务相关邮箱，请更换其他邮箱再试。');
+                    setMessage('激活失败：检测到谷歌相关邮箱，请更换其他邮箱重试。');
                 } else {
                     setStatus('success');
-                    setMessage('验证通过：该邮箱非谷歌相关服务邮箱，可以使用。');
+                    setMessage('激活成功：您的邮箱已通过系统验证。');
                 }
             };
 
@@ -104,16 +105,16 @@
                 <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 font-sans text-gray-800">
                     <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-2xl">
                         
-                        {/* 头部 */}
-                        <div className="bg-blue-600 p-6 text-center">
+                        {/* 头部 - 改成了紫色调，更像激活系统 */}
+                        <div className="bg-indigo-600 p-6 text-center">
                             <div className="mx-auto bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-                                <MailIcon className="text-white w-8 h-8" />
+                                <ZapIcon className="text-white w-8 h-8" />
                             </div>
                             <h1 className="text-2xl font-bold text-white tracking-wide">
-                                邮箱验证系统
+                                邮箱激活系统
                             </h1>
-                            <p className="text-blue-100 mt-2 text-sm">
-                                检测是否为谷歌 (Google) 相关邮箱
+                            <p className="text-indigo-100 mt-2 text-sm">
+                                请输入您的邮箱以获取激活权限
                             </p>
                         </div>
 
@@ -129,9 +130,9 @@
                                         ${status === 'invalid' ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 
                                         status === 'error' ? 'border-orange-300 focus:border-orange-500 focus:ring-orange-200' :
                                         status === 'success' ? 'border-green-300 focus:border-green-500 focus:ring-green-200' :
-                                        'border-gray-300 focus:border-blue-500 focus:ring-blue-200'}
+                                        'border-gray-300 focus:border-indigo-500 focus:ring-indigo-200'}
                                     `}
-                                    placeholder="请输入邮箱"
+                                    placeholder="请输入待激活的邮箱"
                                     value={email}
                                     onChange={(e) => {
                                         setEmail(e.target.value);
@@ -143,10 +144,10 @@
 
                             <button
                                 onClick={handleCheck}
-                                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 hover:shadow-md active:transform active:scale-[0.98] transition-all duration-200"
+                                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-md active:transform active:scale-[0.98] transition-all duration-200"
                             >
-                                <SearchIcon className="-ml-1 mr-2 h-5 w-5" />
-                                立即检测
+                                <ZapIcon className="-ml-1 mr-2 h-5 w-5" />
+                                立即激活
                             </button>
 
                             <div className={`mt-6 transition-all duration-500 ease-in-out overflow-hidden
@@ -165,7 +166,7 @@
                                     <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-md flex items-start animate-fadeIn">
                                         <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                                         <div>
-                                            <h3 className="text-sm font-medium text-green-800">验证通过</h3>
+                                            <h3 className="text-sm font-medium text-green-800">激活成功</h3>
                                             <div className="mt-1 text-sm text-green-700">{message}</div>
                                         </div>
                                     </div>
@@ -174,7 +175,7 @@
                                     <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md flex items-start animate-fadeIn">
                                         <XCircleIcon className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
                                         <div>
-                                            <h3 className="text-sm font-medium text-red-800">无法使用此邮箱</h3>
+                                            <h3 className="text-sm font-medium text-red-800">激活失败</h3>
                                             <div className="mt-1 text-sm text-red-700">{message}</div>
                                         </div>
                                     </div>
@@ -184,7 +185,7 @@
 
                         <div className="bg-gray-50 px-8 py-4 border-t border-gray-100">
                             <p className="text-xs text-center text-gray-500">
-                                支持检测：@gmail.com, @googlemail.com 等谷歌系域名
+                                支持检测：自动识别并过滤 Google 相关服务邮箱
                             </p>
                         </div>
                     </div>
