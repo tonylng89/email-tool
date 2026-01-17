@@ -20,19 +20,23 @@
         .animate-fadeIn {
             animation: fadeIn 0.3s ease-out forwards;
         }
+        /* 自定义进度条动画曲线 */
+        .progress-bar-transition {
+            transition: width 2000ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
         // --- 图标组件 ---
         const MailIcon = ({ className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
         );
-        const ZapIcon = ({ className }) => ( // 换成了闪电图标代表激活
+        const ZapIcon = ({ className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         );
         const AlertCircleIcon = ({ className }) => (
@@ -44,12 +48,16 @@
         const XCircleIcon = ({ className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
         );
+        const LoaderIcon = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${className} animate-spin`}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        );
 
         // --- 主程序 ---
         function App() {
             const [email, setEmail] = useState('');
-            const [status, setStatus] = useState('idle'); // idle, success, error, invalid
+            const [status, setStatus] = useState('idle'); // idle, loading, success, error, invalid
             const [message, setMessage] = useState('');
+            const [progress, setProgress] = useState(0);
 
             // 谷歌系黑名单
             const googleDomains = [
@@ -70,8 +78,12 @@
             };
 
             const handleCheck = () => {
+                // 1. 重置
                 setMessage('');
+                setStatus('idle');
+                setProgress(0);
 
+                // 2. 验证格式
                 if (!email) {
                     setStatus('invalid');
                     setMessage('请输入邮箱地址以进行激活');
@@ -83,20 +95,30 @@
                     return;
                 }
 
-                const emailDomain = email.split('@')[1].toLowerCase();
+                // 3. 开始加载动画
+                setStatus('loading');
+                
+                // 给一个小延迟确保浏览器渲染了0%的状态，然后再设置100%触发过渡动画
+                setTimeout(() => {
+                    setProgress(100);
+                }, 50);
 
-                // 逻辑：如果是谷歌邮箱 -> 激活失败
-                if (googleDomains.includes(emailDomain)) {
-                    setStatus('error');
-                    setMessage('激活失败：检测到谷歌相关邮箱，请更换其他邮箱重试。');
-                } else {
-                    setStatus('success');
-                    setMessage('激活成功：您的邮箱已通过系统验证。');
-                }
+                // 4. 2秒后执行判断逻辑
+                setTimeout(() => {
+                    const emailDomain = email.split('@')[1].toLowerCase();
+
+                    if (googleDomains.includes(emailDomain)) {
+                        setStatus('error');
+                        setMessage('激活失败：检测到谷歌相关邮箱，请更换其他邮箱重试。');
+                    } else {
+                        setStatus('success');
+                        setMessage('激活成功：您的邮箱已通过系统验证。');
+                    }
+                }, 2050); // 略微多于2秒，确保动画完全跑完
             };
 
             const handleKeyDown = (e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && status !== 'loading') {
                     handleCheck();
                 }
             };
@@ -105,7 +127,7 @@
                 <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 font-sans text-gray-800">
                     <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-2xl">
                         
-                        {/* 头部 - 改成了紫色调，更像激活系统 */}
+                        {/* 头部 */}
                         <div className="bg-indigo-600 p-6 text-center">
                             <div className="mx-auto bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
                                 <ZapIcon className="text-white w-8 h-8" />
@@ -136,22 +158,46 @@
                                     value={email}
                                     onChange={(e) => {
                                         setEmail(e.target.value);
-                                        if (status !== 'idle') setStatus('idle');
+                                        // 仅当非loading状态时重置，避免打断动画
+                                        if (status !== 'loading' && status !== 'idle') setStatus('idle');
                                     }}
                                     onKeyDown={handleKeyDown}
+                                    disabled={status === 'loading'}
                                 />
+                            </div>
+
+                            {/* 进度条 (仅在 loading 时显示，或者一直占位) */}
+                            <div className={`w-full bg-gray-100 rounded-full h-2.5 mb-6 overflow-hidden transition-opacity duration-300 ${status === 'loading' ? 'opacity-100' : 'opacity-0 h-0 mb-0'}`}>
+                                <div 
+                                    className="bg-indigo-600 h-2.5 rounded-full progress-bar-transition" 
+                                    style={{ width: `${progress}%` }}
+                                ></div>
                             </div>
 
                             <button
                                 onClick={handleCheck}
-                                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-md active:transform active:scale-[0.98] transition-all duration-200"
+                                disabled={status === 'loading'}
+                                className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-all duration-200
+                                    ${status === 'loading' 
+                                        ? 'bg-indigo-400 cursor-not-allowed' 
+                                        : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-md active:transform active:scale-[0.98]'}
+                                `}
                             >
-                                <ZapIcon className="-ml-1 mr-2 h-5 w-5" />
-                                立即激活
+                                {status === 'loading' ? (
+                                    <>
+                                        <LoaderIcon className="mr-2 h-5 w-5" />
+                                        系统正在激活中...
+                                    </>
+                                ) : (
+                                    <>
+                                        <ZapIcon className="-ml-1 mr-2 h-5 w-5" />
+                                        立即激活
+                                    </>
+                                )}
                             </button>
 
                             <div className={`mt-6 transition-all duration-500 ease-in-out overflow-hidden
-                                ${status === 'idle' ? 'max-h-0 opacity-0' : 'max-h-40 opacity-100'}
+                                ${status === 'idle' || status === 'loading' ? 'max-h-0 opacity-0' : 'max-h-40 opacity-100'}
                             `}>
                                 {status === 'invalid' && (
                                     <div className="bg-gray-100 border-l-4 border-gray-500 p-4 rounded-r-md flex items-start">
